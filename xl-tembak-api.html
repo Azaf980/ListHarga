@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XL Tembak Service — API Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00e676;
+    --red: #ff4757;
+    --yellow: #ffd32a;
+    --text: #e8eaf6;
+    --muted: #607d8b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .layout {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-top: 2px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+  }
+
+  .api-key-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .api-key-section label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .api-key-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-key-input:focus { border-color: var(--accent); }
+  .api-key-input::placeholder { color: var(--muted); }
+
+  .nav-group {
+    padding: 12px 12px 4px;
+  }
+
+  .nav-group-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    padding: 0 8px;
+    margin-bottom: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+
+  .nav-item.active {
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    border-color: rgba(0,212,255,0.2);
+  }
+
+  .nav-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+
+  .nav-item.active .nav-icon { background: rgba(0,212,255,0.15); }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    padding: 32px;
+    max-width: 900px;
+  }
+
+  .page { display: none; animation: fadeIn 0.2s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-header {
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .page-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .page-title { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  .page-desc { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+  /* FORM CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .form-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .required { color: var(--accent2); }
+
+  .form-input, .form-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .form-input:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.08); }
+  .form-input::placeholder { color: var(--muted); }
+  .form-select { cursor: pointer; }
+  .form-select option { background: var(--surface); }
+
+  .url-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    word-break: break-all;
+    line-height: 1.7;
+  }
+
+  .url-preview .param { color: var(--accent); }
+  .url-preview .val { color: var(--yellow); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { background: #00b8d9; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text); }
+
+  /* RESULT */
+  .result-card {
+    background: var(--surface);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .result-header {
+    padding: 12px 20px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .status-dot.success { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .status-dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+
+  .result-body {
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+  }
+
+  /* DATA TABLE */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .data-table tr:hover td { background: rgba(0,212,255,0.03); }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+  }
+
+  .badge-green { background: rgba(0,230,118,0.1); color: var(--green); }
+  .badge-red { background: rgba(255,71,87,0.1); color: var(--red); }
+  .badge-yellow { background: rgba(255,211,42,0.1); color: var(--yellow); }
+  .badge-blue { background: rgba(0,212,255,0.1); color: var(--accent); }
+
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0,212,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--muted);
+  }
+
+  .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; font-family: var(--mono); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .token-display {
+    background: rgba(0,230,118,0.05);
+    border: 1px solid rgba(0,230,118,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    word-break: break-all;
+    display: none;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* MARKUP SECTION */
+  .markup-section {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,107,53,0.04);
+  }
+
+  .markup-section label {
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .markup-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+
+  .toggle-switch input:checked + .toggle-slider { background: rgba(255,107,53,0.3); border: 1px solid var(--accent2); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--accent2); }
+
+  .markup-inputs { display: none; gap: 8px; flex-direction: column; }
+  .markup-inputs.visible { display: flex; }
+
+  .markup-row { display: flex; gap: 8px; }
+
+  .markup-type-btn {
+    flex: 1;
+    padding: 7px 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .markup-type-btn.active {
+    background: rgba(255,107,53,0.12);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .markup-value-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    padding: 7px 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .markup-value-input:focus { border-color: var(--accent2); }
+
+  .markup-preview {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .markup-preview .markup-result { color: var(--accent2); font-weight: 600; }
+
+  /* Price display in package list with markup */
+  .price-original { color: var(--muted); text-decoration: line-through; font-size: 11px; }
+  .price-markup { color: var(--accent2); font-weight: 600; }
+  .price-profit { color: var(--green); font-size: 10px; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-dot"></div>
+        XL TEMBAK
+      </div>
+      <div class="logo-sub">// service api panel</div>
+    </div>
+
+    <div class="api-key-section">
+      <label>API KEY</label>
+      <input type="password" class="api-key-input" id="globalApiKey" placeholder="Masukkan API Key...">
+    </div>
+
+    <!-- MARKUP SECTION -->
+    <div class="markup-section">
+      <label>💹 Mark-Up Harga
+        <label class="toggle-switch" style="margin-left:auto">
+          <input type="checkbox" id="markupEnabled" onchange="toggleMarkupInputs()">
+          <span class="toggle-slider"></span>
+        </label>
+      </label>
+      <div class="markup-inputs" id="markupInputs">
+        <div class="markup-row">
+          <button class="markup-type-btn active" id="btn-flat" onclick="setMarkupType('flat')">Rp Flat</button>
+          <button class="markup-type-btn" id="btn-pct" onclick="setMarkupType('pct')">% Persen</button>
+        </div>
+        <div style="position:relative">
+          <input class="markup-value-input" id="markupValue" type="number" min="0" placeholder="0" oninput="updateMarkupPreview()">
+          <span id="markupUnit" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:var(--accent2);pointer-events:none">Rp</span>
+        </div>
+        <div class="markup-preview">
+          <span>Contoh harga Rp <span id="previewBase">50.000</span></span>
+          <span class="markup-result" id="previewResult">→ Rp 50.000</span>
+        </div>
+        <div class="markup-preview" style="margin-top:0">
+          <span>Profit per transaksi</span>
+          <span class="markup-result" id="previewProfit" style="color:var(--green)">Rp 0</span>
+        </div>
+      </div>
+    </div>
+
+      <div class="nav-item" onclick="showPage('markup')">
+        <div class="nav-icon">💹</div> Kelola Mark-Up
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Akun & Auth</div>
+      <div class="nav-item active" onclick="showPage('balance')">
+        <div class="nav-icon">💰</div> Saldo Akun
+      </div>
+      <div class="nav-item" onclick="showPage('reqotp')">
+        <div class="nav-icon">📩</div> Request OTP
+      </div>
+      <div class="nav-item" onclick="showPage('login')">
+        <div class="nav-icon">🔐</div> Login
+      </div>
+      <div class="nav-item" onclick="showPage('tokenlist')">
+        <div class="nav-icon">🗂️</div> Access Token List
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Paket & Stok</div>
+      <div class="nav-item" onclick="showPage('packagelist')">
+        <div class="nav-icon">📋</div> Package List
+      </div>
+      <div class="nav-item" onclick="showPage('packagestock')">
+        <div class="nav-icon">📦</div> Package Stock
+      </div>
+      <div class="nav-item" onclick="showPage('akrabstock')">
+        <div class="nav-icon">🌐</div> Akrab Global Stock
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Subscriber</div>
+      <div class="nav-item" onclick="showPage('subinfo')">
+        <div class="nav-icon">👤</div> Subscriber Info
+      </div>
+      <div class="nav-item" onclick="showPage('sublocation')">
+        <div class="nav-icon">📍</div> Subscriber Location
+      </div>
+      <div class="nav-item" onclick="showPage('quotadetails')">
+        <div class="nav-icon">📊</div> Quota Details
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Transaksi</div>
+      <div class="nav-item" onclick="showPage('purchase')">
+        <div class="nav-icon">🛒</div> Purchase Package
+      </div>
+      <div class="nav-item" onclick="showPage('unreg')">
+        <div class="nav-icon">❌</div> Unreg Package
+      </div>
+      <div class="nav-item" onclick="showPage('checktransaction')">
+        <div class="nav-icon">🔍</div> Check Transaksi
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- MARKUP MANAGEMENT PAGE -->
+    <div class="page" id="page-markup">
+      <div class="page-header">
+        <div class="page-icon">💹</div>
+        <div>
+          <div class="page-title">Kelola Mark-Up Harga</div>
+          <div class="page-desc">// atur harga jual otomatis untuk semua paket</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Pengaturan Mark-Up Global</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <!-- Enable toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+            <div>
+              <div style="font-size:14px;font-weight:700;margin-bottom:3px">Aktifkan Mark-Up</div>
+              <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">Harga yang ditampilkan & digunakan akan otomatis di-markup</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="markupEnabled2" onchange="syncMarkupToggle(2)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Type selection -->
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Tipe Mark-Up</div>
+            <div style="display:flex;gap:10px">
+              <div class="markup-type-card active" id="type-card-flat" onclick="setMarkupType('flat')" style="flex:1;padding:16px;background:var(--bg);border:2px solid var(--accent2);border-radius:10px;cursor:pointer;text-align:center;transition:all 0.15s">
+                <div style="font-size:20px;margin-bottom:6px">🪙</div>
+                <div style="font-weight:700;font-size:14px">Nominal Flat</div>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px">+ Rp X per paket</div>
+              </div>
+              <div class="markup-type-card" id="type-card-pct" onclick="setMarkupType('pct')" style="flex:1;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all 0.15s">
+                <div style="font-size:20px;margin-bottom:6px">📈</div>
+                <div style="font-weight:700;font-size:14px">Persentase</div>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px">+ X% dari harga</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Value input -->
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Nilai Mark-Up</div>
+            <div style="position:relative">
+              <input class="markup-value-input" id="markupValueMain" type="number" min="0" placeholder="0" oninput="syncMarkupValue(); updateMarkupPreview()" style="font-size:22px;padding:14px 50px 14px 14px;height:auto">
+              <span id="markupUnitMain" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:16px;color:var(--accent2);pointer-events:none;font-weight:700">Rp</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulator -->
+      <div class="card">
+        <div class="card-title">Simulasi Harga</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group">
+            <div class="form-label">Harga Modal (Rp)</div>
+            <input class="form-input" id="sim-base" type="number" placeholder="50000" oninput="runSimulator()" value="50000">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Jumlah Transaksi / hari</div>
+            <input class="form-input" id="sim-qty" type="number" placeholder="10" oninput="runSimulator()" value="10">
+          </div>
+        </div>
+        <br>
+        <div id="sim-result" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px">HARGA MODAL</div>
+            <div style="font-size:20px;font-weight:800;color:var(--text)" id="sim-modal">Rp 50.000</div>
+          </div>
+          <div style="background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px">HARGA JUAL</div>
+            <div style="font-size:20px;font-weight:800;color:var(--accent2)" id="sim-jual">Rp 50.000</div>
+          </div>
+          <div style="background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px">PROFIT / HARI</div>
+            <div style="font-size:20px;font-weight:800;color:var(--green)" id="sim-profit">Rp 0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Markup per-paket override -->
+      <div class="card">
+        <div class="card-title">Mark-Up Per Paket (Override)</div>
+        <p style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:16px">Atur mark-up khusus untuk paket tertentu. Jika diisi, override mark-up global.</p>
+        <div id="per-package-list">
+          <div class="per-pkg-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px">
+            <input class="form-input" placeholder="Kode Paket (package_code)" id="ppkg-code-0">
+            <div style="position:relative">
+              <input class="form-input" placeholder="0" type="number" id="ppkg-val-0" style="padding-right:36px">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--accent2);font-family:var(--mono)" id="ppkg-unit-0">Rp</span>
+            </div>
+            <button class="btn btn-secondary" style="padding:8px 12px" onclick="removePkgRow(0)">✕</button>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="font-size:12px;padding:8px 16px" onclick="addPkgRow()">+ Tambah Paket</button>
+      </div>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="page active" id="page-balance">
+      <div class="page-header">
+        <div class="page-icon">💰</div>
+        <div>
+          <div class="page-title">Saldo Akun</div>
+          <div class="page-desc">GET /v1 → panelaccountbalance</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">API Key <span class="required">*</span></div>
+          <input class="form-input" id="b-apikey" placeholder="Otomatis dari sidebar...">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('balance')">
+          <span id="balance-loader"></span> Cek Saldo
+        </button>
+      </div>
+      <div class="result-card" id="result-balance"><div class="empty-state"><div class="emoji">💳</div><p>Tekan tombol untuk melihat saldo akun</p></div></div>
+    </div>
+
+    <!-- REQUEST OTP -->
+    <div class="page" id="page-reqotp">
+      <div class="page-header">
+        <div class="page-icon">📩</div>
+        <div>
+          <div class="page-title">Request OTP</div>
+          <div class="page-desc">GET /v1 → reqotp</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">No. Telepon <span class="required">*</span></div>
+            <input class="form-input" id="otp-phone" placeholder="628xxxxxxxxxx">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Method <span class="required">*</span></div>
+            <select class="form-select" id="otp-method">
+              <option value="OTP">OTP</option>
+            </select>
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('reqotp')">
+          <span id="reqotp-loader"></span> Kirim OTP
+        </button>
+      </div>
+      <div class="result-card" id="result-reqotp"><div class="empty-state"><div class="emoji">📲</div><p>Isi form lalu tekan Kirim OTP</p></div></div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="page" id="page-login">
+      <div class="page-header">
+        <div class="page-icon">🔐</div>
+        <div>
+          <div class="page-title">Login</div>
+          <div class="page-desc">GET /v1 → login (OTP / Access Token)</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">No. Telepon <span class="required">*</span></div>
+            <input class="form-input" id="login-phone" placeholder="628xxxxxxxxxx">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Method <span class="required">*</span></div>
+            <select class="form-select" id="login-method" onchange="toggleLoginFields()">
+              <option value="OTP">OTP</option>
+              <option value="LOGIN_BY_ACCESS_TOKEN">Login by Access Token</option>
+            </select>
+          </div>
+          <div class="form-group form-full" id="login-authid-group">
+            <div class="form-label">Auth ID <span class="required">*</span></div>
+            <input class="form-input" id="login-authid" placeholder="AUTH_ID dari Request OTP / session_id:token">
+          </div>
+          <div class="form-group" id="login-otp-group">
+            <div class="form-label">Kode OTP <span class="required">*</span></div>
+            <input class="form-input" id="login-otp" placeholder="6 digit OTP">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('login')">
+          <span id="login-loader"></span> Login
+        </button>
+      </div>
+      <div class="token-display" id="saved-token"></div>
+      <div class="result-card" id="result-login"><div class="empty-state"><div class="emoji">🔑</div><p>Isi form login dan tekan tombol Login</p></div></div>
+    </div>
+
+    <!-- ACCESS TOKEN LIST -->
+    <div class="page" id="page-tokenlist">
+      <div class="page-header">
+        <div class="page-icon">🗂️</div>
+        <div>
+          <div class="page-title">Access Token List</div>
+          <div class="page-desc">GET /v1 → accesstokenlist</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">MSISDN (Opsional)</div>
+          <input class="form-input" id="tl-msisdn" placeholder="628xxx (opsional)">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('tokenlist')">
+          <span id="tokenlist-loader"></span> Tampilkan Token
+        </button>
+      </div>
+      <div class="result-card" id="result-tokenlist"><div class="empty-state"><div class="emoji">🗃️</div><p>Tekan tombol untuk melihat daftar access token</p></div></div>
+    </div>
+
+    <!-- PACKAGE LIST -->
+    <div class="page" id="page-packagelist">
+      <div class="page-header">
+        <div class="page-icon">📋</div>
+        <div>
+          <div class="page-title">Package List</div>
+          <div class="page-desc">GET /v1 → packagelist</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <p style="font-size:12px;color:var(--muted);font-family:var(--mono)">Hanya membutuhkan API Key. Pastikan API Key sudah diisi di sidebar.</p>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('packagelist')">
+          <span id="packagelist-loader"></span> Tampilkan Paket
+        </button>
+      </div>
+      <div class="result-card" id="result-packagelist"><div class="empty-state"><div class="emoji">📦</div><p>Tekan tombol untuk memuat daftar paket</p></div></div>
+    </div>
+
+    <!-- PACKAGE STOCK -->
+    <div class="page" id="page-packagestock">
+      <div class="page-header">
+        <div class="page-icon">📦</div>
+        <div>
+          <div class="page-title">Cek Stok Paket</div>
+          <div class="page-desc">GET /v1 → checkpackagestock</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">Package ID <span class="required">*</span></div>
+          <input class="form-input" id="ps-packageid" placeholder="PACKAGE_ID">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('packagestock')">
+          <span id="packagestock-loader"></span> Cek Stok
+        </button>
+      </div>
+      <div class="result-card" id="result-packagestock"><div class="empty-state"><div class="emoji">🏷️</div><p>Masukkan Package ID untuk cek stok</p></div></div>
+    </div>
+
+    <!-- AKRAB GLOBAL STOCK -->
+    <div class="page" id="page-akrabstock">
+      <div class="page-header">
+        <div class="page-icon">🌐</div>
+        <div>
+          <div class="page-title">Akrab Global Stock</div>
+          <div class="page-desc">GET /v1 → checkpackagestockakrabglobal</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <p style="font-size:12px;color:var(--muted);font-family:var(--mono)">Hanya membutuhkan API Key. Pastikan API Key sudah diisi di sidebar.</p>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('akrabstock')">
+          <span id="akrabstock-loader"></span> Cek Stok Akrab Global
+        </button>
+      </div>
+      <div class="result-card" id="result-akrabstock"><div class="empty-state"><div class="emoji">🌏</div><p>Tekan tombol untuk melihat stok Akrab Global</p></div></div>
+    </div>
+
+    <!-- SUBSCRIBER INFO -->
+    <div class="page" id="page-subinfo">
+      <div class="page-header">
+        <div class="page-icon">👤</div>
+        <div>
+          <div class="page-title">Subscriber Info</div>
+          <div class="page-desc">GET /v1 → subscriberinfo</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">Access Token <span class="required">*</span></div>
+          <input class="form-input" id="si-token" placeholder="Access token subscriber">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('subinfo')">
+          <span id="subinfo-loader"></span> Ambil Info
+        </button>
+      </div>
+      <div class="result-card" id="result-subinfo"><div class="empty-state"><div class="emoji">🙋</div><p>Masukkan access token untuk melihat info subscriber</p></div></div>
+    </div>
+
+    <!-- SUBSCRIBER LOCATION -->
+    <div class="page" id="page-sublocation">
+      <div class="page-header">
+        <div class="page-icon">📍</div>
+        <div>
+          <div class="page-title">Subscriber Location</div>
+          <div class="page-desc">GET /v1 → subscriberlocation</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">Access Token <span class="required">*</span></div>
+          <input class="form-input" id="sl-token" placeholder="Access token subscriber">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('sublocation')">
+          <span id="sublocation-loader"></span> Cek Lokasi
+        </button>
+      </div>
+      <div class="result-card" id="result-sublocation"><div class="empty-state"><div class="emoji">🗺️</div><p>Masukkan access token untuk melihat lokasi subscriber</p></div></div>
+    </div>
+
+    <!-- QUOTA DETAILS -->
+    <div class="page" id="page-quotadetails">
+      <div class="page-header">
+        <div class="page-icon">📊</div>
+        <div>
+          <div class="page-title">Quota Details</div>
+          <div class="page-desc">GET /v1 → quotadetails</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">Access Token <span class="required">*</span></div>
+          <input class="form-input" id="qd-token" placeholder="Access token subscriber">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('quotadetails')">
+          <span id="quotadetails-loader"></span> Lihat Quota
+        </button>
+      </div>
+      <div class="result-card" id="result-quotadetails"><div class="empty-state"><div class="emoji">📶</div><p>Masukkan access token untuk melihat detail quota</p></div></div>
+    </div>
+
+    <!-- PURCHASE -->
+    <div class="page" id="page-purchase">
+      <div class="page-header">
+        <div class="page-icon">🛒</div>
+        <div>
+          <div class="page-title">Purchase Package</div>
+          <div class="page-desc">GET /v1 → packagepurchase</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter Wajib</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Package Code <span class="required">*</span></div>
+            <input class="form-input" id="pur-code" placeholder="Kode paket">
+          </div>
+          <div class="form-group">
+            <div class="form-label">No. Telepon <span class="required">*</span></div>
+            <input class="form-input" id="pur-phone" placeholder="628xxxxxxxxxx">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Harga / Fee <span class="required">*</span></div>
+            <input class="form-input" id="pur-price" placeholder="Nominal harga">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Payment Method</div>
+            <select class="form-select" id="pur-payment" onchange="togglePaymentFields()">
+              <option value="">-- Tanpa Payment Method --</option>
+              <option value="BALANCE">BALANCE</option>
+              <option value="DANA">DANA</option>
+              <option value="QRIS">QRIS</option>
+              <option value="GOPAY">GOPAY</option>
+              <option value="SHOPEEPAY">SHOPEEPAY</option>
+              <option value="OVO">OVO</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="pur-extra-card">
+        <div class="card-title">Parameter Opsional (eWallet)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Access Token</div>
+            <input class="form-input" id="pur-token" placeholder="Access token (opsional)">
+          </div>
+          <div class="form-group" id="pur-ewallet-group">
+            <div class="form-label">eWallet Number</div>
+            <input class="form-input" id="pur-ewallet" placeholder="08xxxx (untuk eWallet)">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="callApi('purchase')">
+        <span id="purchase-loader"></span> 🛒 Beli Paket
+      </button>
+      <div id="purchase-markup-info" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:8px;font-family:var(--mono);font-size:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"></div>
+      <div style="margin-top:20px" class="result-card" id="result-purchase"><div class="empty-state"><div class="emoji">🛍️</div><p>Isi form pembelian lalu tekan tombol</p></div></div>
+    </div>
+
+    <!-- UNREG -->
+    <div class="page" id="page-unreg">
+      <div class="page-header">
+        <div class="page-icon">❌</div>
+        <div>
+          <div class="page-title">Unreg Package</div>
+          <div class="page-desc">GET /v1 → unregpackage</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Access Token <span class="required">*</span></div>
+            <input class="form-input" id="ur-token" placeholder="Access token subscriber">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Encrypted Package Code <span class="required">*</span></div>
+            <input class="form-input" id="ur-code" placeholder="Encrypted package code">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-primary" style="background:#ff4757;color:#fff" onclick="callApi('unreg')">
+          <span id="unreg-loader"></span> ❌ Unreg Paket
+        </button>
+      </div>
+      <div class="result-card" id="result-unreg"><div class="empty-state"><div class="emoji">🗑️</div><p>Isi form untuk unreg paket</p></div></div>
+    </div>
+
+    <!-- CHECK TRANSACTION -->
+    <div class="page" id="page-checktransaction">
+      <div class="page-header">
+        <div class="page-icon">🔍</div>
+        <div>
+          <div class="page-title">Check Transaksi</div>
+          <div class="page-desc">GET /v1 → checktransaction</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameter</div>
+        <div class="form-group">
+          <div class="form-label">Transaction ID <span class="required">*</span></div>
+          <input class="form-input" id="ct-trxid" placeholder="ID Transaksi">
+        </div>
+        <br>
+        <button class="btn btn-primary" onclick="callApi('checktransaction')">
+          <span id="checktransaction-loader"></span> Cek Transaksi
+        </button>
+      </div>
+      <div class="result-card" id="result-checktransaction"><div class="empty-state"><div class="emoji">🧾</div><p>Masukkan Transaction ID untuk memeriksa status</p></div></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const ENDPOINTS = {
+    balance:        'https://golang-openapi-panelaccountbalance-xltembakservice.kmsp-store.com/v1',
+    reqotp:         'https://golang-openapi-reqotp-xltembakservice.kmsp-store.com/v1',
+    login:          'https://golang-openapi-login-xltembakservice.kmsp-store.com/v1',
+    tokenlist:      'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1',
+    packagelist:    'https://golang-openapi-packagelist-xltembakservice.kmsp-store.com/v1',
+    packagestock:   'https://golang-openapi-checkpackagestock-xltembakservice.kmsp-store.com/v1',
+    akrabstock:     'https://golang-openapi-checkpackagestockakrabglobal-xltembakservice.kmsp-store.com/v1',
+    subinfo:        'https://golang-openapi-subscriberinfo-xltembakservice.kmsp-store.com/v1',
+    sublocation:    'https://golang-openapi-subscriberlocation-xltembakservice.kmsp-store.com/v1',
+    quotadetails:   'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1',
+    purchase:       'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1',
+    unreg:          'https://golang-openapi-unregpackage-xltembakservice.kmsp-store.com/v1',
+    checktransaction: 'https://golang-openapi-checktransaction-xltembakservice.kmsp-store.com/v1',
+  };
+
+  // ── MARKUP STATE ──────────────────────────────────────────
+  let markup = {
+    enabled: false,
+    type: 'flat',      // 'flat' | 'pct'
+    value: 0,
+    perPackage: {}     // { package_code: { type, value } }
+  };
+
+  let pkgRowCount = 1;
+
+  function getApiKey() {
+    return document.getElementById('globalApiKey').value.trim();
+  }
+
+  // Apply markup to a base price (number), optional package_code override
+  function applyMarkup(basePrice, packageCode) {
+    if (!markup.enabled) return basePrice;
+    let cfg = markup;
+    if (packageCode && markup.perPackage[packageCode]) cfg = markup.perPackage[packageCode];
+    const val = parseFloat(cfg.value) || 0;
+    if (cfg.type === 'flat') return basePrice + val;
+    else return Math.round(basePrice * (1 + val / 100));
+  }
+
+  function formatRupiah(n) {
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  }
+
+  // ── MARKUP UI ─────────────────────────────────────────────
+  function toggleMarkupInputs() {
+    const cb = document.getElementById('markupEnabled');
+    markup.enabled = cb.checked;
+    document.getElementById('markupInputs').classList.toggle('visible', markup.enabled);
+    // sync page toggle
+    document.getElementById('markupEnabled2').checked = markup.enabled;
+    updateMarkupPreview();
+  }
+
+  function syncMarkupToggle(from) {
+    const val = document.getElementById('markupEnabled' + from).checked;
+    markup.enabled = val;
+    document.getElementById('markupEnabled').checked = val;
+    document.getElementById('markupEnabled2').checked = val;
+    document.getElementById('markupInputs').classList.toggle('visible', val);
+    updateMarkupPreview();
+  }
+
+  function setMarkupType(type) {
+    markup.type = type;
+    // sidebar buttons
+    document.getElementById('btn-flat').classList.toggle('active', type === 'flat');
+    document.getElementById('btn-pct').classList.toggle('active', type === 'pct');
+    // page cards
+    document.getElementById('type-card-flat').style.borderColor = type === 'flat' ? 'var(--accent2)' : 'var(--border)';
+    document.getElementById('type-card-pct').style.borderColor = type === 'pct' ? 'var(--accent2)' : 'var(--border)';
+    // unit labels
+    const unit = type === 'flat' ? 'Rp' : '%';
+    document.getElementById('markupUnit').textContent = unit;
+    document.getElementById('markupUnitMain').textContent = unit;
+    // sync per-pkg unit displays
+    document.querySelectorAll('[id^="ppkg-unit-"]').forEach(el => el.textContent = unit);
+    updateMarkupPreview();
+    runSimulator();
+  }
+
+  function syncMarkupValue() {
+    const v = document.getElementById('markupValueMain').value;
+    document.getElementById('markupValue').value = v;
+    markup.value = parseFloat(v) || 0;
+    updateMarkupPreview();
+    runSimulator();
+  }
+
+  function updateMarkupPreview() {
+    const v = parseFloat(document.getElementById('markupValue').value) || 0;
+    markup.value = v;
+    const base = 50000;
+    const result = applyMarkup(base, null);
+    const profit = result - base;
+    document.getElementById('previewResult').textContent = '→ ' + formatRupiah(result);
+    document.getElementById('previewProfit').textContent = formatRupiah(profit);
+    runSimulator();
+  }
+
+  function runSimulator() {
+    const base = parseFloat(document.getElementById('sim-base').value) || 0;
+    const qty = parseFloat(document.getElementById('sim-qty').value) || 0;
+    const jual = applyMarkup(base, null);
+    const profitPerTrx = jual - base;
+    document.getElementById('sim-modal').textContent = formatRupiah(base);
+    document.getElementById('sim-jual').textContent = formatRupiah(jual);
+    document.getElementById('sim-profit').textContent = formatRupiah(profitPerTrx * qty);
+  }
+
+  // Per-package rows
+  function addPkgRow() {
+    const i = pkgRowCount++;
+    const unit = markup.type === 'flat' ? 'Rp' : '%';
+    const container = document.getElementById('per-package-list');
+    const row = document.createElement('div');
+    row.className = 'per-pkg-row';
+    row.id = 'pkg-row-' + i;
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px';
+    row.innerHTML = `
+      <input class="form-input" placeholder="Kode Paket (package_code)" id="ppkg-code-${i}">
+      <div style="position:relative">
+        <input class="form-input" placeholder="0" type="number" id="ppkg-val-${i}" style="padding-right:36px" oninput="savePkgMarkup(${i})">
+        <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--accent2);font-family:var(--mono)" id="ppkg-unit-${i}">${unit}</span>
+      </div>
+      <button class="btn btn-secondary" style="padding:8px 12px" onclick="removePkgRow(${i})">✕</button>
+    `;
+    container.appendChild(row);
+    document.getElementById('ppkg-code-' + i).addEventListener('input', () => savePkgMarkup(i));
+  }
+
+  function removePkgRow(i) {
+    const row = document.getElementById('pkg-row-' + i) || document.querySelector('.per-pkg-row');
+    if (row) {
+      const code = document.getElementById('ppkg-code-' + i);
+      if (code) delete markup.perPackage[code.value];
+      row.remove();
+    }
+  }
+
+  function savePkgMarkup(i) {
+    const code = document.getElementById('ppkg-code-' + i)?.value.trim();
+    const val = parseFloat(document.getElementById('ppkg-val-' + i)?.value) || 0;
+    if (code) markup.perPackage[code] = { type: markup.type, value: val };
+  }
+
+  // ── PRICE FIELD DETECTION ────────────────────────────────
+  // Keys that commonly hold price values in API responses
+  const PRICE_KEYS = ['price', 'harga', 'fee', 'cost', 'amount', 'price_or_fee', 'base_price', 'sell_price', 'modal', 'harga_modal', 'harga_jual'];
+
+  function isPriceKey(key) {
+    return PRICE_KEYS.some(k => key.toLowerCase().includes(k));
+  }
+
+  function formatCellWithMarkup(val, key, row) {
+    if (val === null || val === undefined) return '<span style="color:var(--muted)">—</span>';
+    if (typeof val === 'boolean') return val ? '<span class="badge badge-green">true</span>' : '<span class="badge badge-red">false</span>';
+    if (typeof val === 'object') return `<span style="color:var(--muted);font-size:11px">[object]</span>`;
+
+    const str = String(val);
+
+    // If markup is enabled and this looks like a price field
+    if (markup.enabled && isPriceKey(key) && !isNaN(parseFloat(val))) {
+      const base = parseFloat(val);
+      const pkgCode = row['package_code'] || row['code'] || row['kode'] || null;
+      const marked = applyMarkup(base, pkgCode);
+      const profit = marked - base;
+      return `
+        <div>
+          <div class="price-original">${formatRupiah(base)}</div>
+          <div class="price-markup">${formatRupiah(marked)}</div>
+          <div class="price-profit">+${formatRupiah(profit)} profit</div>
+        </div>`;
+    }
+
+    if (str.length > 60) return `<span title="${str}">${str.substring(0, 58)}…</span>`;
+    return str;
+  }
+
+  // ── NAVIGATION ───────────────────────────────────────────
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if (id === 'markup') runSimulator();
+  }
+
+  function toggleLoginFields() {
+    const method = document.getElementById('login-method').value;
+    document.getElementById('login-otp-group').style.display = method === 'OTP' ? 'flex' : 'none';
+  }
+
+  function togglePaymentFields() {
+    const method = document.getElementById('pur-payment').value;
+    document.getElementById('pur-ewallet-group').style.display = (method && method !== 'BALANCE') ? 'flex' : 'none';
+  }
+
+  function setLoading(id, loading) {
+    const el = document.getElementById(id + '-loader');
+    if (!el) return;
+    el.innerHTML = loading ? '<span class="loading-spinner"></span>' : '';
+  }
+
+  // ── RENDER RESULT ─────────────────────────────────────────
+  function renderResult(id, data, isError) {
+    const el = document.getElementById('result-' + id);
+    const json = JSON.stringify(data, null, 2);
+    const statusClass = isError ? 'error' : 'success';
+    const statusText = isError ? 'ERROR' : 'SUCCESS';
+
+    let tableHtml = '';
+    let arr = null;
+    if (Array.isArray(data)) arr = data;
+    else if (data && typeof data === 'object') {
+      for (const k of Object.keys(data)) {
+        if (Array.isArray(data[k]) && data[k].length > 0) { arr = data[k]; break; }
+      }
+    }
+
+    // Markup notice banner
+    let markupBanner = '';
+    if (markup.enabled) {
+      markupBanner = `<div style="padding:8px 16px;background:rgba(255,107,53,0.08);border-bottom:1px solid rgba(255,107,53,0.2);font-family:var(--mono);font-size:11px;color:var(--accent2);display:flex;align-items:center;gap:6px">
+        💹 Mark-Up aktif — ${markup.type === 'flat' ? formatRupiah(markup.value) + ' flat' : markup.value + '% persen'} per paket
+      </div>`;
+    }
+
+    if (arr && arr.length > 0 && typeof arr[0] === 'object') {
+      const cols = Object.keys(arr[0]);
+      tableHtml = `
+        <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${arr.map(row => `<tr>${cols.map(c => `<td>${formatCellWithMarkup(row[c], c, row)}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>
+        </div>
+      `;
+    }
+
+    el.innerHTML = `
+      <div class="result-header">
+        <div class="result-status">
+          <div class="status-dot ${statusClass}"></div>
+          <span>${statusText}</span>
+        </div>
+        <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px" onclick="copyJson('${id}')">Copy JSON</button>
+      </div>
+      ${markupBanner}
+      ${tableHtml ? `<div style="border-bottom:1px solid var(--border)">${tableHtml}</div>` : ''}
+      <div class="result-body" id="json-${id}">${syntaxHighlight(json)}</div>
+    `;
+  }
+
+  function syntaxHighlight(json) {
+    return json
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+        let cls = 'color:var(--yellow)';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) cls = 'color:var(--accent)';
+          else cls = 'color:var(--green)';
+        } else if (/true|false/.test(match)) cls = 'color:var(--accent2)';
+        else if (/null/.test(match)) cls = 'color:var(--muted)';
+        return `<span style="${cls}">${match}</span>`;
+      });
+  }
+
+  function copyJson(id) {
+    const el = document.getElementById('json-' + id);
+    navigator.clipboard.writeText(el ? el.innerText : '').then(() => alert('JSON berhasil disalin!'));
+  }
+
+  // ── API CALL ──────────────────────────────────────────────
+  async function callApi(id) {
+    const apiKey = getApiKey();
+    if (!apiKey) { alert('Masukkan API Key terlebih dahulu di sidebar!'); return; }
+
+    let url = ENDPOINTS[id];
+    const params = new URLSearchParams({ api_key: apiKey });
+
+    switch (id) {
+      case 'reqotp':
+        params.append('phone', document.getElementById('otp-phone').value);
+        params.append('method', document.getElementById('otp-method').value);
+        break;
+      case 'login': {
+        const method = document.getElementById('login-method').value;
+        params.append('phone', document.getElementById('login-phone').value);
+        params.append('method', method);
+        params.append('auth_id', document.getElementById('login-authid').value);
+        if (method === 'OTP') params.append('otp', document.getElementById('login-otp').value);
+        break;
+      }
+      case 'tokenlist': {
+        const msisdn = document.getElementById('tl-msisdn').value;
+        if (msisdn) params.append('msisdn', msisdn);
+        break;
+      }
+      case 'packagestock':
+        params.append('package_id', document.getElementById('ps-packageid').value);
+        break;
+      case 'subinfo':
+        params.append('access_token', document.getElementById('si-token').value);
+        break;
+      case 'sublocation':
+        params.append('access_token', document.getElementById('sl-token').value);
+        break;
+      case 'quotadetails':
+        params.append('access_token', document.getElementById('qd-token').value);
+        break;
+      case 'purchase': {
+        const basePrice = parseFloat(document.getElementById('pur-price').value) || 0;
+        const pkgCode = document.getElementById('pur-code').value;
+        // Apply markup to price_or_fee sent to API (use original price for payment, markup is display only)
+        // Actually we send original price to API; markup is for your display/selling price
+        params.append('package_code', pkgCode);
+        params.append('phone', document.getElementById('pur-phone').value);
+        params.append('price_or_fee', basePrice); // send original modal price to API
+        const pm = document.getElementById('pur-payment').value;
+        const token = document.getElementById('pur-token').value;
+        if (pm) params.append('payment_method', pm);
+        if (token) params.append('access_token', token);
+        if (pm && pm !== 'BALANCE') {
+          const ew = document.getElementById('pur-ewallet').value;
+          if (ew) params.append('ewallet_number', ew);
+        }
+
+        // Show markup info on purchase form
+        if (markup.enabled && basePrice > 0) {
+          const markedPrice = applyMarkup(basePrice, pkgCode);
+          const profit = markedPrice - basePrice;
+          const infoEl = document.getElementById('purchase-markup-info');
+          if (infoEl) {
+            infoEl.style.display = 'flex';
+            infoEl.innerHTML = `
+              <span>💹 Harga jual ke pelanggan:</span>
+              <span style="color:var(--accent2);font-weight:700">${formatRupiah(markedPrice)} <span style="color:var(--green);font-size:11px">(+${formatRupiah(profit)} profit)</span></span>
+            `;
+          }
+        }
+        break;
+      }
+      case 'unreg':
+        params.append('access_token', document.getElementById('ur-token').value);
+        params.append('encrypted_package_code', document.getElementById('ur-code').value);
+        break;
+      case 'checktransaction':
+        params.append('trx_id', document.getElementById('ct-trxid').value);
+        break;
+    }
+
+    const fullUrl = `${url}?${params.toString()}`;
+    setLoading(id, true);
+    document.getElementById('result-' + id).innerHTML = `
+      <div class="result-header">
+        <div class="result-status"><div class="status-dot loading"></div><span>Menghubungi server...</span></div>
+      </div>
+      <div class="result-body" style="color:var(--muted)">Memuat data dari:\n${fullUrl}</div>
+    `;
+
+    try {
+      const res = await fetch(fullUrl);
+      const data = await res.json();
+      renderResult(id, data, !res.ok);
+      if (id === 'login' && data && data.access_token) {
+        const tokenEl = document.getElementById('saved-token');
+        tokenEl.style.display = 'block';
+        tokenEl.textContent = `✅ Access Token tersimpan: ${data.access_token}`;
+      }
+    } catch (err) {
+      renderResult(id, { error: err.message, url: fullUrl, note: 'Mungkin terjadi CORS block dari browser. Coba via server/backend.' }, true);
+    } finally {
+      setLoading(id, false);
+    }
+  }
+
+  // Sync global API key to balance field
+  document.getElementById('globalApiKey').addEventListener('input', function() {
+    document.getElementById('b-apikey').value = this.value;
+  });
+
+  // Sidebar markup value sync
+  document.getElementById('markupValue').addEventListener('input', function() {
+    markup.value = parseFloat(this.value) || 0;
+    document.getElementById('markupValueMain').value = this.value;
+    updateMarkupPreview();
+  });
+
+  toggleLoginFields();
+  togglePaymentFields();
+  runSimulator();
+</script>
+</body>
+</html>
